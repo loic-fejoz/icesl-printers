@@ -67,6 +67,7 @@ function header()
   output('G1 Z15.0 F300; Going up before homing')
   output('G28 X0 Y0; Homing XY')
   output('G28 Z0; Homing Z')
+  output('G1 Z15.0 F300; Going back up while heating')
   
   -- Wait for temperature
   output('M190 S' .. bed_temp_degree_c )
@@ -93,7 +94,7 @@ function footer()
   output('M104 T0 S0') -- set extruder's temp
   output('M104 T1 S0') -- set extruder's temp
   output('M140 S0') -- set bed's temp
-  output('G1 X0 Y'..ff(bed_size_y_mm))
+  output('G0 F9000 X0 Y'..ff(bed_size_y_mm/2.0)) -- so that the screen is still readable
   output('M84 ; disable motors')
 end
 
