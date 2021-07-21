@@ -81,20 +81,14 @@ travel_jerk = 5.00 -- mm/s
 -- Misc settings
 -- #############
 -- Purge Tower
-gen_tower = false
-tower_side_x_mm = 10.0
-tower_side_y_mm = 5.0
-tower_brim_num_contours = 12
+gen_tower = true
+-- tower_side_x_mm = 10.0
+-- tower_side_y_mm = 5.0
+-- tower_brim_num_contours = 12
 
-tower_at_location = true
-tower_location_x_mm = 230
-tower_location_y_mm = 100
-
--- extruder swap behaviour
--- enable_active_temperature_control = true
--- extruder_swap_zlift_mm = 0.2
--- extruder_swap_retract_length_mm = 10.0
--- extruder_swap_retract_speed_mm_per_sec = 20.0
+-- tower_at_location = true
+-- tower_location_x_mm = 230
+-- tower_location_y_mm = 100
 
 -- brim
 add_brim = false

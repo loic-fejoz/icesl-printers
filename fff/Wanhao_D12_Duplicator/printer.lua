@@ -46,7 +46,7 @@ function comment(text)
 end
 
 function header()
-  output(';Generated with ' .. slicer_name .. ' ' .. slicer_version)
+  output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. ' ' .. slicer_build_date)
 
   output('M107 ; Fan Off')
 
@@ -79,16 +79,27 @@ function header()
   end
 
   -- Extruders's position
+  -- Always assume T0 is already in place, 
+  -- while T1 is at storage position
   comment('Reset position of extruders')
+  -- reset T1 first so that T0 is always default first
+  if filament_tot_length_mm[1] > 0 then 
+    output('T1')
+    output('G92 E0')
+  end
+  -- reset T0
   output('T0')
-  output('G92 E0')
-  output('T1')
   output('G92 E0')
 
   output('M117') -- as in Cura profile
+  comment('number_of_extruders :\t' .. number_of_extruders)
+
+  -- ensure T0 is last tool/extruder selected
 end
 
 function footer()
+  -- TODO Reset T1 at storage position
+  -- TODO Reset T0 at in-used position
   output('M107; Fan off')
   comment('Stop heating extruders and bed')
   output('M104 T0 S0') -- set extruder's temp
@@ -102,8 +113,10 @@ function retract(extruder,e)
   local len   = filament_priming_mm[extruder]
   local speed = retract_mm_per_sec[extruder] * 60
   local e_value = e - extruder_e_swap[current_extruder]
+  -- TODO this only works when T0 is the first used tool
   if extruder_stored[extruder] then 
-    comment('retract on extruder ' .. extruder .. ' skipped')
+    comment('retract on extruder ' .. extruder .. ' skipped (' .. ff(e) .. 'mm)')
+    output('G92 E-' .. ff(extruder_swap_retract_length_mm))
   else
     comment('retract')    
     output('G1 F' .. speed .. ' E' .. ff(e_value - extruder_e_reset[current_extruder] - len))
@@ -148,110 +161,57 @@ function layer_stop()
   output('; </layer>')
 end
 
-swap_dist_mm = 60
-
-function load_extruder(extruder)
-  local tower_u = tower_location_y_mm - swap_dist_mm/2
-  local tower_d = tower_location_y_mm + swap_dist_mm/2
-
-  -- load filament
-  output(';load extruder ' .. extruder)
-  output('T' .. extruder)
-  output('G92 E0')
-  output('G1 E20.0000 Y' .. f(tower_d) .. ' F1400')
-  output('G1 E60.0000 Y' .. f(tower_u) .. ' F3000')
-  output('G1 E80.0000 Y' .. f(tower_d) .. ' F1600')
-  output('G1 E90.0000 Y' .. f(tower_u) .. ' F1000')
-
-  output('G4 S0')
-
-  output('G92 E0')
-
-  current_extruder = extruder
-end
-
-function unload_extruder(extruder)
-  local tower_u = tower_location_y_mm - swap_dist_mm/2
-  local tower_d = tower_location_y_mm + swap_dist_mm/2
-
-  output(';unload extruder ' .. extruder)
-  output('G92 E0')
-  output('G1 E-15.0000 Y' .. f(tower_u) .. ' F5000')
-  output('G1 E-65.0000 Y' .. f(tower_d) .. ' F5400')
-  output('G1 E-80.0000 Y' .. f(tower_u) .. ' F3000')
-  output('G1 E-92.0000 Y' .. f(tower_d) .. ' F2000')
-
-  output('G1 E-89.0000 Y' .. f(tower_u) .. ' F1600')
-  output('G1 E-94.0000 Y' .. f(tower_d))
-  output('G1 E-89.0000 Y' .. f(tower_u) .. ' F2000')
-  output('G1 E-94.0000 Y' .. f(tower_d))
-  output('G1 E-89.0000 Y' .. f(tower_u) .. ' F2400')
-  output('G1 E-94.0000 Y' .. f(tower_d))
-  output('G1 E-94.0000 Y' .. f(tower_u))
-  output('G1 E-89.0000 Y' .. f(tower_d))
-  output('G1 E-92.0000 Y' .. f(tower_u))
-  output('G4 S0')
-end
-
 -- this is called once for each used extruder at startup
 function select_extruder(extruder)
-  local tower_u = swap_dist_mm
-  local tower_d = 0
+  -- always output T command because the header might
+  -- not set T0 be the default tool/extruder
+  output('T' .. extruder .. '; select extruder')
+  n_selected_extruder = n_selected_extruder + 1
 
-  output('G1 Z1.5 X0.0000 Y' .. (-3 + f(extruder)*2.5) .. ' F3000.0')
-
-  if current_extruder > -1 then
-    output(';unload extruder ' .. current_extruder)
-    output('G92 E0')
-    output('G1 E-15.0000 X' .. f(tower_u) .. ' F5000')
-    output('G1 E-65.0000 X' .. f(tower_d) .. ' F5400')
-    output('G1 E-80.0000 X' .. f(tower_u) .. ' F3000')
-    output('G1 E-92.0000 X' .. f(tower_d) .. ' F2000')
-
-    output('G1 E-89.0000 X' .. f(tower_u) .. ' F1600')
-    output('G1 E-94.0000 X' .. f(tower_d))
-    output('G1 E-89.0000 X' .. f(tower_u) .. ' F2000')
-    output('G1 E-94.0000 X' .. f(tower_d))
-    output('G1 E-89.0000 X' .. f(tower_u) .. ' F2400')
-    output('G1 E-94.0000 X' .. f(tower_d))
-    output('G1 E-94.0000 X' .. f(tower_u))
-    output('G1 E-89.0000 X' .. f(tower_d))
-    output('G1 E-92.0000 X' .. f(tower_u))
+  local x_pos = 0
+  local y_pos = -2
+  local z_pos = 0.35
+  if extruder == 0 then
+    x_pos = 30
+  elseif extruder == 1 then 
+    x_pos = 300
   end
 
-  -- load filament
-  output(';load extruder ' .. extruder)
-  output('T' .. extruder)
-  output('G92 E0')
+  purge_string = purge_string .. '\nT' .. extruder .. '; selecting extruder'
+  purge_string = purge_string .. '\nG92 E0'
+  purge_string = purge_string .. '\nG1 X' .. x_pos .. ' Y' .. y_pos .. ' F800'
+  purge_string = purge_string .. '\nG1 Z' .. z_pos .. ' F200'
+  purge_string = purge_string .. '\nG1 X' .. x_pos + 60 .. ' Y' .. y_pos .. ' E13 F200'
+  purge_string = purge_string .. '\nG1 E15 F200'
+  purge_string = purge_string .. '\nG1 Z5 F200'
+  purge_string = purge_string .. '\nG92 E0'
 
-  output('G1 E20.0000 X' .. f(tower_d) .. ' F1400')
-  output('G1 E60.0000 X' .. f(tower_u) .. ' F3000')
-  output('G1 E80.0000 X' .. f(tower_d) .. ' F1600')
-  output('G1 E90.0000 X' .. f(tower_u) .. ' F1000')
+  -- number_of_extruders is an IceSL internal Lua global variable 
+  -- which is used to know how many extruders will be used for a print job
+  if n_selected_extruder == number_of_extruders then
+    purge_string = purge_string .. '\n\nG1 F9000'
+    purge_string = purge_string .. '\nM117 Printing...'
+    purge_string = purge_string .. '\nM1001\n'
+    extruder_stored[extruder] = false
+  else
+    purge_string = purge_string .. '\nG1 E-' .. extruder_swap_retract_length_mm .. ' F200' .. '\n'
+    extruder_stored[extruder] = true
+  end
 
-  output('G4 S0')
-
-  output('G92 E0')
-
-  -- prime outside print area
-  output('G1 Z0.5 X100.0 E5.00 F1000.0')
-  output('G1 Z0.5 X200.0 E20.0 F1000.0')
-
-  -- prime done, reset E
-  output('G92 E0')
   current_extruder = extruder
+  current_frate = travel_speed_mm_per_sec * 60
+  changed_frate = true
 end
 
 function swap_extruder(from,to,x,y,z)
+  output('\n;swap_extruder')
   extruder_e_swap[from] = extruder_e_swap[from] + extruder_e[from] - extruder_e_reset[from]
-  extruder_e_restart[current_extruder] = extruder_e[current_extruder]
 
-  local len   = extruder_swap_retract_length_mm
-  local speed = extruder_swap_retract_speed_mm_per_sec * 60
-
-  comment('swap_extruder')
-  unload_extruder(from)
-  load_extruder(to)
+  -- swap extruder
+  output('G92 E0')
+  output('G1 F' .. ff(extruder_swap_retract_speed_mm_per_sec * 60) .. ' E-' .. fff(extruder_swap_retract_length_mm))
+  output('T' .. to)
+  output('G1 F' .. ff(extruder_swap_retract_speed_mm_per_sec * 60) .. ' E0')
 
   extruder_stored[to] = false
 
@@ -311,17 +271,17 @@ function move_xyze(x,y,z,e)
 
   if z == current_z then
     if changed_frate == true then 
-      output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
+      output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' E' .. fff(e_value))
       changed_frate = false
     else
-      output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
+      output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' E' .. fff(e_value))
     end
   else
     if changed_frate == true then
-      output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. f(z) .. ' E' .. ff(e_value))
+      output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. f(z) .. ' E' .. fff(e_value))
       changed_frate = false
     else
-      output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. f(z) .. ' E' .. ff(e_value))
+      output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. f(z) .. ' E' .. fff(e_value))
     end
     current_z = z
   end
@@ -333,10 +293,10 @@ function move_e(e)
   local e_value =  extruder_e[current_extruder] - extruder_e_reset[current_extruder]
 
   if changed_frate == true then 
-    output('G1 F' .. current_frate .. ' E' .. ff(e_value))
+    output('G1 F' .. current_frate .. ' E' .. fff(e_value))
     changed_frate = false
   else
-    output('G1 E' .. ff(e_value))
+    output('G1 E' .. fff(e_value))
   end
 end
 
@@ -366,7 +326,7 @@ end
 
 function set_fan_speed(speed)
   if speed ~= current_fan_speed then
-    output('M106 S'.. math.floor(255 * speed/100))
+    output('M106 S'.. math.floor(255 * speed/100) .. ' ; Fan speed')
     current_fan_speed = speed
   end
 end
