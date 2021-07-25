@@ -82,9 +82,9 @@ travel_jerk = 5.00 -- mm/s
 -- #############
 -- Purge Tower
 gen_tower = true
--- tower_side_x_mm = 10.0
--- tower_side_y_mm = 5.0
--- tower_brim_num_contours = 12
+tower_side_x_mm = 15.0
+tower_side_y_mm = 15.0
+tower_brim_num_contours = 10
 
 -- tower_at_location = true
 -- tower_location_x_mm = 230

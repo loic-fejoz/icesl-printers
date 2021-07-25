@@ -63,6 +63,15 @@ function header()
     set_extruder_temperature(1, extruder_temp_degree_c[extruders[1]])
   end
 
+
+  
+  -- if use_acc_jerk_settings then
+  --  output('M204 S' .. default_acc .. '   ;set default acceleration')
+  --  output('M205 X' .. default_jerk .. ' Y' .. default_jerk ..'   ;set default jerk')
+  -- end
+    
+
+
   -- Homing
   output('G1 Z15.0 F300; Going up before homing')
   output('G28 X0 Y0; Homing XY')
@@ -98,14 +107,23 @@ function header()
 end
 
 function footer()
-  -- TODO Reset T1 at storage position
-  -- TODO Reset T0 at in-used position
+  comment("current_extruder: " .. current_extruder)
+  if current_extruder == 1 then
+    -- Reset T1 at storage position -- Reset T0 at in-used position
+    comment('Reset T1 at storage position')
+    comment('Reset T0 at in-used position')
+    swap_extruder(1, 0, nil, nil, nil)
+    -- output('G92 E0')
+    -- local speed = priming_mm_per_sec[current_extruder] * 60
+    -- output('G0 F' .. ff(speed) .. ' E' .. fff(extruder_swap_retract_length_mm))
+  end
   output('M107; Fan off')
   comment('Stop heating extruders and bed')
   output('M104 T0 S0') -- set extruder's temp
   output('M104 T1 S0') -- set extruder's temp
   output('M140 S0') -- set bed's temp
-  output('G0 F9000 X0 Y'..ff(bed_size_y_mm/2.0)) -- so that the screen is still readable
+  local goto_z = math.max(current_z, 15.0)
+  output('G0 F9000 X0 Y'..ff(bed_size_y_mm/2.0) .. " Z" .. ff(goto_z)) -- so that the screen is still readable
   output('M84 ; disable motors')
 end
 
@@ -113,13 +131,12 @@ function retract(extruder,e)
   local len   = filament_priming_mm[extruder]
   local speed = retract_mm_per_sec[extruder] * 60
   local e_value = e - extruder_e_swap[current_extruder]
-  -- TODO this only works when T0 is the first used tool
+  -- This only works when T0 is the first used tool
   if extruder_stored[extruder] then 
     comment('retract on extruder ' .. extruder .. ' skipped (' .. ff(e) .. 'mm)')
-    output('G92 E-' .. ff(extruder_swap_retract_length_mm))
+    --output('G92 E-' .. ff(extruder_swap_retract_length_mm) .." ;retract stored")
   else
-    comment('retract')    
-    output('G1 F' .. speed .. ' E' .. ff(e_value - extruder_e_reset[current_extruder] - len))
+    output('G1 F' .. speed .. ' E' .. ff(e_value - extruder_e_reset[current_extruder] - len) .. " ;retract")
     extruder_e[current_extruder] = e_value - len
     current_frate = speed
     changed_frate = true
@@ -167,6 +184,20 @@ function select_extruder(extruder)
   -- not set T0 be the default tool/extruder
   output('T' .. extruder .. '; select extruder')
   n_selected_extruder = n_selected_extruder + 1
+  --comment("extruder: " .. extruder .. ", n_selected_extruder: " .. n_selected_extruder)
+  if extruder == 1 and n_selected_extruder == 2 then
+    -- Load second extruder T1
+    --prime(extruder, extruder_swap_retract_length_mm)
+    local speed = priming_mm_per_sec[current_extruder] * 60
+    output('G0 F' .. ff(speed) .. ' E' .. fff(extruder_swap_retract_length_mm) .. ' ; Load T1')
+  end
+  if extruder == 0 and n_selected_extruder == 1 then
+    -- Store first extruder T0
+    --retract(extruder, extruder_swap_retract_length_mm)
+    local speed = priming_mm_per_sec[current_extruder] * 60
+    output('G0 F' .. ff(speed) .. ' E-' .. fff(extruder_swap_retract_length_mm) .. ' ; Store T0')
+    output('G92 E0')
+  end
 
   local x_pos = 0
   local y_pos = -2
@@ -177,24 +208,9 @@ function select_extruder(extruder)
     x_pos = 300
   end
 
-  purge_string = purge_string .. '\nT' .. extruder .. '; selecting extruder'
-  purge_string = purge_string .. '\nG92 E0'
-  purge_string = purge_string .. '\nG1 X' .. x_pos .. ' Y' .. y_pos .. ' F800'
-  purge_string = purge_string .. '\nG1 Z' .. z_pos .. ' F200'
-  purge_string = purge_string .. '\nG1 X' .. x_pos + 60 .. ' Y' .. y_pos .. ' E13 F200'
-  purge_string = purge_string .. '\nG1 E15 F200'
-  purge_string = purge_string .. '\nG1 Z5 F200'
-  purge_string = purge_string .. '\nG92 E0'
-
-  -- number_of_extruders is an IceSL internal Lua global variable 
-  -- which is used to know how many extruders will be used for a print job
   if n_selected_extruder == number_of_extruders then
-    purge_string = purge_string .. '\n\nG1 F9000'
-    purge_string = purge_string .. '\nM117 Printing...'
-    purge_string = purge_string .. '\nM1001\n'
     extruder_stored[extruder] = false
   else
-    purge_string = purge_string .. '\nG1 E-' .. extruder_swap_retract_length_mm .. ' F200' .. '\n'
     extruder_stored[extruder] = true
   end
 
@@ -211,8 +227,9 @@ function swap_extruder(from,to,x,y,z)
   output('G92 E0')
   output('G1 F' .. ff(extruder_swap_retract_speed_mm_per_sec * 60) .. ' E-' .. fff(extruder_swap_retract_length_mm))
   output('T' .. to)
-  output('G1 F' .. ff(extruder_swap_retract_speed_mm_per_sec * 60) .. ' E0')
-
+  output('G92 E0')
+  output('G1 F' .. ff(extruder_swap_retract_speed_mm_per_sec * 60) .. ' E' .. fff(extruder_swap_retract_length_mm))
+  output('G92 E0')
   extruder_stored[to] = false
 
   current_extruder = to
