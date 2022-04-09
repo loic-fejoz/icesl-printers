@@ -50,6 +50,10 @@ perimeter_print_speed_mm_per_sec = 40
 perimeter_print_speed_mm_per_sec_min = 5
 perimeter_print_speed_mm_per_sec_max = 200
 
+cover_print_speed_mm_per_sec = 40
+cover_print_speed_mm_per_sec_min = 5
+cover_print_speed_mm_per_sec_max = 200
+
 first_layer_print_speed_mm_per_sec = 20
 first_layer_print_speed_mm_per_sec_min = 5
 first_layer_print_speed_mm_per_sec_max = 50
@@ -63,7 +67,7 @@ flow_compensation = false
 filament_type = 0 -- for M403 command for the MMU2 (0: default; 1:flex; 2: PVA)
 
 add_brim = true
-brim_distance_to_print = 1.0
+brim_distance_to_print_mm = 1.0
 brim_num_contours = 4
 
 process_thin_features = false

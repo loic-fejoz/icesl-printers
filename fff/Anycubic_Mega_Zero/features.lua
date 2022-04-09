@@ -38,6 +38,10 @@ perimeter_print_speed_mm_per_sec = 30
 perimeter_print_speed_mm_per_sec_min = 5
 perimeter_print_speed_mm_per_sec_max = 200
 
+cover_print_speed_mm_per_sec = 30
+cover_print_speed_mm_per_sec_min = 5
+cover_print_speed_mm_per_sec_max = 200
+
 first_layer_print_speed_mm_per_sec = 20
 first_layer_print_speed_mm_per_sec_min = 5
 first_layer_print_speed_mm_per_sec_max = 50
@@ -46,7 +50,7 @@ travel_speed_mm_per_sec = 100
 
 -- Misc default settings
 add_brim = true
-brim_distance_to_print = 1.0
+brim_distance_to_print_mm = 1.0
 brim_num_contours = 4
 z_lift_mm = 0.6
 

@@ -5,6 +5,7 @@ z_layer_height_mm = 0.25
 print_speed_mm_per_sec=40
 first_layer_print_speed_mm_per_sec=15
 perimeter_print_speed_mm_per_sec=30
+cover_print_speed_mm_per_sec=30
 travel_speed_mm_per_sec=130
 priming_mm_per_sec=80
 retract_mm_per_sec=80
@@ -16,7 +17,7 @@ gen_supports=false
 support_extruder=0
 
 add_brim=true
-brim_distance_to_print=0.0
+brim_distance_to_print_mm=0.0
 brim_num_contours=2
 
 extruder_0=0

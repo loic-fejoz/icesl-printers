@@ -20,6 +20,7 @@ bed_temp_degree_c = 60
 -- speeds and multipliers
 print_speed_mm_per_sec = 35
 perimeter_print_speed_mm_per_sec = 35
+cover_print_speed_mm_per_sec = 35
 first_layer_print_speed_mm_per_sec = 25
 travel_speed_mm_per_sec = 80
 flow_multiplier_0 = 1.05
@@ -42,6 +43,6 @@ raft_spacing = 1.0
 gen_supports = false
 support_extruder = 0
 add_brim = true
-brim_distance_to_print = 2.0
+brim_distance_to_print_mm = 2.0
 brim_num_contours = 2
 process_thin_features = false

@@ -15,6 +15,7 @@ infill_percentage_0 = 25
 -- Speed
 print_speed_mm_per_sec = 60
 perimeter_print_speed_mm_per_sec = 30
+cover_print_speed_mm_per_sec = 30
 first_layer_print_speed_mm_per_sec = 15
 
 travel_speed_mm_per_sec = 100
@@ -31,5 +32,5 @@ gen_supports = false
 support_extruder = 0
 
 add_brim = true
-brim_distance_to_print = 1.0
+brim_distance_to_print_mm = 1.0
 brim_num_contours = 4

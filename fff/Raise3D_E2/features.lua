@@ -72,6 +72,10 @@ perimeter_print_speed_mm_per_sec = 50
 perimeter_print_speed_mm_per_sec_min = 5
 perimeter_print_speed_mm_per_sec_max = 80
 
+cover_print_speed_mm_per_sec = 50
+cover_print_speed_mm_per_sec_min = 5
+cover_print_speed_mm_per_sec_max = 80
+
 first_layer_print_speed_mm_per_sec = 20
 first_layer_print_speed_mm_per_sec_min = 5
 first_layer_print_speed_mm_per_sec_max = 30
@@ -111,7 +115,7 @@ extruder_swap_retract_speed_mm_per_sec = 20.0
 
 -- brim
 add_brim = true
-brim_distance_to_print = 1.0
+brim_distance_to_print_mm = 1.0
 brim_num_contours = 4
 
 -- flow management
